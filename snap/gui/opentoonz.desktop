@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=OpenToonz
+Exec=opentoonz
+Icon=${SNAP}/meta/gui/opentoonz.png
+Categories=Graphics

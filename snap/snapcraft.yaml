@@ -1,0 +1,114 @@
+name: opentoonz
+version: "1.2.0"
+summary: OpenToonz is a 2D animation software
+description: |
+  Published by DWANGO, OpenToonz is based on Toonz Studio Ghibli Version,
+  originally developed in Italy by Digital Video, Inc., and customized
+  by Studio Ghibli over many years of production.
+
+confinement: strict
+grade: stable
+
+apps:
+  opentoonz:
+    command: desktop-launch $SNAP/bin/opentoonz
+    plugs:
+      - desktop
+      - desktop-legacy
+      - x11
+      - unity7
+      - opengl
+      - network
+      - network-manager
+      - home
+      - removable-media
+      - pulseaudio
+  tcleanup:
+    command: tcleanup
+    plugs:
+      - home
+  tcomposer:
+    command: tcomposer
+    plugs:
+      - home
+  tconverter:
+    command: tconverter
+    plugs:
+      - home
+  tfarmcontroller:
+    command: tfarmcontroller
+    plugs:
+      - home
+  tfarmserver:
+    command: tfarmserver
+    plugs:
+      - home
+
+parts:
+  libmypaint:
+    source: https://github.com/mypaint/libmypaint.git
+    source-tag: 'v1.3.0'
+    plugin: autotools
+    build-packages:
+      - build-essential
+      - python2.7
+      - autotools-dev
+      - intltool
+      - gettext
+      - libtool
+      - libjson-c-dev
+      - libgirepository1.0-dev
+      - libglib2.0-dev
+  opentoonz:
+    after: [libmypaint, desktop-qt5]
+    plugin: cmake
+    source: https://github.com/opentoonz/opentoonz
+    source-type: git
+    source-tag: 'v1.2.0'
+    build: |
+      cd thirdparty/tiff-4.0.3
+      ./configure --with-pic --disable-jbig
+      make
+      cd ../../
+      mkdir build
+      cd build
+      cmake ../toonz/sources
+      make
+    install: |
+      cp -a build/bin $SNAPCRAFT_PART_INSTALL/
+      cp -a build/lib/opentoonz/ $SNAPCRAFT_PART_INSTALL/lib
+      mkdir -p $SNAPCRAFT_PART_INSTALL/share/opentoonz
+      cp -a stuff $SNAPCRAFT_PART_INSTALL/share/opentoonz
+    #source-subdir: "toonz/sources"
+    build-packages:
+      - build-essential
+      - cmake
+      - pkg-config
+      - libboost-all-dev
+      - qt5-default
+      - qtbase5-dev
+      - libqt5svg5-dev
+      - qtscript5-dev
+      - qttools5-dev-tools
+      - libqt5opengl5-dev
+      - libsuperlu-dev
+      - liblz4-dev
+      - libusb-1.0-0-dev
+      - liblzo2-dev
+      - libjpeg-dev
+      - libglew-dev
+      - freeglut3-dev
+      - libsdl2-dev
+      - libfreetype6-dev
+      - qtmultimedia5-dev
+      - libqt5multimedia5
+    stage-packages:
+      - libglu1-mesa
+      - ffmpeg
+      - libpulse0
+      - gstreamer1.0-plugins-ugly
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-bad
+      - libqt5multimedia5-plugins
+    organize:
+      usr/lib/*/pulseaudio/*: lib/
