@@ -1,5 +1,5 @@
 name: opentoonz
-version: "1.2.0"
+version: "1.2.1"
 summary: OpenToonz is a 2D animation software
 description: |
   Published by DWANGO, OpenToonz is based on Toonz Studio Ghibli Version,
@@ -64,7 +64,7 @@ parts:
     plugin: cmake
     source: https://github.com/opentoonz/opentoonz
     source-type: git
-    source-tag: 'v1.2.0'
+    source-tag: 'v1.2.1'
     build: |
       cd thirdparty/tiff-4.0.3
       ./configure --with-pic --disable-jbig
