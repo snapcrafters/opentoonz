@@ -6,11 +6,15 @@ description: |
   originally developed in Italy by Digital Video, Inc., and customized
   by Studio Ghibli over many years of production.
 
+base: core18
+
 confinement: strict
 grade: stable
 
 apps:
   opentoonz:
+    environment:
+      "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas"
     command: desktop-launch $SNAP/bin/opentoonz
     plugs:
       - desktop
@@ -59,13 +63,23 @@ parts:
       - libjson-c-dev
       - libgirepository1.0-dev
       - libglib2.0-dev
+  # tiff: - this doesn't work because opentoonz can't find the built libtff
+  #   source: https://github.com/opentoonz/opentoonz
+  #   source-type: git
+  #   source-tag: 'v1.2.1'
+  #   source-subdir: thirdparty/tiff-4.0.3
+  #   plugin: autotools
+  #   configflags: ["--with-pic", "--disable-jbig"]
   opentoonz:
+#    after: [tiff, libmypaint, desktop-qt5]
     after: [libmypaint, desktop-qt5]
-    plugin: cmake
+    plugin: make
     source: https://github.com/opentoonz/opentoonz
     source-type: git
     source-tag: 'v1.2.1'
-    build: |
+#    source-subdir: toonz/sources
+#    configflags: [-DCMAKE_CXX_FLAGS="-I$SNAPCRAFT_STAGE/include"]
+    override-build: |
       cd thirdparty/tiff-4.0.3
       ./configure --with-pic --disable-jbig
       make
@@ -74,41 +88,72 @@ parts:
       cd build
       cmake ../toonz/sources
       make
-    install: |
-      cp -a build/bin $SNAPCRAFT_PART_INSTALL/
-      cp -a build/lib/opentoonz/ $SNAPCRAFT_PART_INSTALL/lib
+      cp -a bin $SNAPCRAFT_PART_INSTALL/
+      cp -a lib/opentoonz/ $SNAPCRAFT_PART_INSTALL/lib
       mkdir -p $SNAPCRAFT_PART_INSTALL/share/opentoonz
-      cp -a stuff $SNAPCRAFT_PART_INSTALL/share/opentoonz
+      cp -a ../stuff $SNAPCRAFT_PART_INSTALL/share/opentoonz
     #source-subdir: "toonz/sources"
     build-packages:
-      - build-essential
-      - cmake
-      - pkg-config
-      - libboost-all-dev
-      - qt5-default
-      - qtbase5-dev
-      - libqt5svg5-dev
-      - qtscript5-dev
-      - qttools5-dev-tools
-      - libqt5opengl5-dev
-      - libsuperlu-dev
-      - liblz4-dev
-      - libusb-1.0-0-dev
-      - liblzo2-dev
-      - libjpeg-dev
-      - libglew-dev
-      - freeglut3-dev
-      - libsdl2-dev
-      - libfreetype6-dev
-      - qtmultimedia5-dev
-      - libqt5multimedia5
+        - build-essential
+        - cmake
+        - pkg-config
+        - libboost-all-dev
+        - qt5-default
+        - qtbase5-dev
+        - libqt5svg5-dev
+        - qtscript5-dev
+        - qttools5-dev
+        - qttools5-dev-tools
+        - libqt5opengl5-dev
+        - libsuperlu-dev
+        - liblz4-dev
+        - libusb-1.0-0-dev
+        - liblzo2-dev
+        - libjpeg-dev
+        - libglew-dev
+        - freeglut3-dev
+        - libsdl2-dev
+        - libfreetype6-dev
+        - qtmultimedia5-dev
+        - libqt5multimedia5
     stage-packages:
-      - libglu1-mesa
-      - ffmpeg
-      - libpulse0
-      - gstreamer1.0-plugins-ugly
-      - gstreamer1.0-plugins-good
-      - gstreamer1.0-plugins-bad
-      - libqt5multimedia5-plugins
+        - libglu1-mesa
+        - ffmpeg
+        - libpulse0
+        - gstreamer1.0-plugins-ugly
+        - gstreamer1.0-plugins-good
+        - gstreamer1.0-plugins-bad
+        - libqt5multimedia5-plugins
+        - libglew2.0
+        - libqt5printsupport5
+        - libqt5script5
+        - libblas3
+        - libpgm-5.2-0
+        - libsuperlu5
+        - freeglut3
+        - libgpm2
     organize:
       usr/lib/*/pulseaudio/*: lib/
+  desktop-qt5:
+      build-packages:
+        - qtbase5-dev
+        - dpkg-dev
+      make-parameters:
+        - FLAVOR=qt5
+      plugin: make
+      source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+      source-subdir: qt
+      stage-packages:
+        - libxkbcommon0
+        - ttf-ubuntu-font-family
+        - dmz-cursor-theme
+        - light-themes
+        - adwaita-icon-theme
+        - gnome-themes-standard
+        - shared-mime-info
+        - libqt5gui5
+        - libgdk-pixbuf2.0-0
+        - libqt5svg5
+#        - appmenu-qt5
+        - locales-all
+        - xdg-user-dirs
