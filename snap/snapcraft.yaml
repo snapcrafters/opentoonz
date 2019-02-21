@@ -15,6 +15,7 @@ apps:
   opentoonz:
     environment:
       "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas"
+      "LD_LIBRARY_PATH": "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH"
     command: desktop-launch $SNAP/bin/opentoonz
     plugs:
       - desktop
@@ -121,8 +122,6 @@ parts:
         - libsuperlu5
         - freeglut3
         - libgpm2
-    organize:
-      usr/lib/*/pulseaudio/*: lib/
   desktop-qt5:
       build-packages:
         - qtbase5-dev
