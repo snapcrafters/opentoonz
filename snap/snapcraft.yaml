@@ -1,5 +1,5 @@
 name: opentoonz
-version: "1.3.0"
+version: "1.4.0"
 summary: OpenToonz is a 2D animation software
 description: |
   Published by DWANGO, OpenToonz is based on Toonz Studio Ghibli Version,
@@ -58,7 +58,7 @@ apps:
 parts:
   libmypaint:
     source: https://github.com/mypaint/libmypaint.git
-    source-tag: 'v1.3.0'
+    source-tag: 'v1.4.0'
     plugin: autotools
     build-packages:
       - build-essential
@@ -75,9 +75,22 @@ parts:
     plugin: make
     source: https://github.com/opentoonz/opentoonz
     source-type: git
-    source-tag: 'v1.3.0'
+    source-tag: 'v1.4.0'
+    #override-pull: |
+      #set -eu
+      #snapcraftctl pull
+      #last_committed_tag="$(git describe --tags --abbrev=0)"
+      #last_committed_tag_ver="$(echo ${last_committed_tag} | sed 's/v//')"
+      #last_released_tag="$(snap info $SNAPCRAFT_PROJECT_NAME | awk '$1 == "beta:" { print $2 }')"
+      ## If the latest tag from the upstream project has not been released to
+      ## beta, build that tag instead of master.
+      #if [ "${last_committed_tag_ver}" != "${last_released_tag}" ]; then
+      #  git fetch
+      #  git checkout "${last_committed_tag}"
+      #fi
+      #snapcraftctl set-version $(git describe --tags --abbrev=0)
     override-build: |
-      cd thirdparty/tiff-4.0.3
+      cd thirdparty/tiff-*
       ./configure --with-pic --disable-jbig
       make
       cd ../../
