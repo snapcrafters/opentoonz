@@ -141,6 +141,8 @@ parts:
         - libsuperlu5
         - freeglut3
         - libgpm2
+        - x264
+        - libslang2        
   desktop-qt5:
       build-packages:
         - qtbase5-dev
