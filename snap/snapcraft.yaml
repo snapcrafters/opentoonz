@@ -1,5 +1,5 @@
 name: opentoonz
-version: "1.4.0"
+version: "1.5.0"
 summary: OpenToonz is a 2D animation software
 description: |
   Published by DWANGO, OpenToonz is based on Toonz Studio Ghibli Version,
@@ -22,7 +22,7 @@ apps:
       # Fallback to XWayland if running in a Wayland session.
       DISABLE_WAYLAND: 1
       HOME: "$SNAP_USER_COMMON"
-      LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio"
+      LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack"
     command: desktop-launch $SNAP/bin/opentoonz
     plugs:
       - desktop
@@ -59,7 +59,7 @@ apps:
 parts:
   libmypaint:
     source: https://github.com/mypaint/libmypaint.git
-    source-tag: 'v1.4.0'
+    source-tag: 'v1.6.1'
     plugin: autotools
     build-packages:
       - build-essential
@@ -76,7 +76,7 @@ parts:
     plugin: make
     source: https://github.com/opentoonz/opentoonz
     source-type: git
-    source-tag: 'v1.4.0'
+    source-tag: 'v1.5.0'
     #override-pull: |
       #set -eu
       #snapcraftctl pull
@@ -126,6 +126,9 @@ parts:
         - libfreetype6-dev
         - qtmultimedia5-dev
         - libqt5multimedia5
+        - libqt5serialport5-dev
+        - libopencv-dev
+        - libturbojpeg0-dev
     stage-packages:
         - libglu1-mesa
         - ffmpeg
@@ -143,7 +146,57 @@ parts:
         - freeglut3
         - libgpm2
         - x264
-        - libslang2        
+        - libslang2
+        - libqt5serialport5
+        - libaec0
+        - libarmadillo8
+        - libarpack2
+        - libcharls1
+        - libdap25
+        - libdapclient6v5
+        - libepsilon1
+        - libexif12
+        - libfreexl1
+        - libfyba0
+        - libgdal20
+        - libgdcm2.8
+        - libgeos-3.6.2
+        - libgeos-c1v5
+        - libgeotiff2
+        - libgfortran4
+        - libgif7
+        - libgphoto2-6
+        - libgphoto2-port12
+        - libhdf4-0-alt
+        - libhdf5-100
+        - libkmlbase1
+        - libkmldom1
+        - libkmlengine1
+        - libltdl7
+        - libminizip1
+        - libmysqlclient20
+        - libnetcdf13
+        - libnspr4
+        - libnss3
+        - libodbc1
+        - libogdi3.2
+        - libopencv-core3.2
+        - libopencv-imgcodecs3.2
+        - libopencv-imgproc3.2
+        - libopencv-videoio3.2
+        - libpoppler73
+        - libpq5
+        - libproj12
+        - libqhull7
+        - libquadmath0
+        - libspatialite7
+        - libsz2
+        - libtbb2
+        - libturbojpeg
+        - liburiparser1
+        - libxerces-c3.2
+        - odbcinst1debian2
+
   desktop-qt5:
       build-packages:
         - qtbase5-dev
