@@ -56,6 +56,10 @@ apps:
     plugs:
       - home
 
+layout:
+  /usr/bin/ffmpeg:
+    bind-file: $SNAP/usr/bin/ffmpeg
+
 parts:
   libmypaint:
     source: https://github.com/mypaint/libmypaint.git
