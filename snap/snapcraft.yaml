@@ -23,7 +23,10 @@ apps:
       DISABLE_WAYLAND: 1
       HOME: "$SNAP_USER_COMMON"
       LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack"
-    command: desktop-launch $SNAP/bin/opentoonz
+    command: bin/opentoonz
+    command-chain:
+      - bin/desktop-launch
+      - snap/command-chain/ensure-defaults.sh
     plugs:
       - desktop
       - desktop-legacy
@@ -55,10 +58,6 @@ apps:
     command: tfarmserver
     plugs:
       - home
-
-layout:
-  /usr/bin/ffmpeg:
-    bind-file: $SNAP/usr/bin/ffmpeg
 
 parts:
   libmypaint:
@@ -200,6 +199,17 @@ parts:
         - liburiparser1
         - libxerces-c3.2
         - odbcinst1debian2
+
+  # Inject default preferences to point to ffmpeg in the snap itself
+  default-preferences:
+    after: [ opentoonz ]
+    plugin: dump
+    source: default-preferences
+    organize:
+      preferences.ini: share/opentoonz/stuff/profiles/layouts/settings/preferences.ini
+      ensure-defaults.sh: snap/command-chain/ensure-defaults.sh
+    stage-packages:
+      - crudini
 
   desktop-qt5:
       build-packages:
