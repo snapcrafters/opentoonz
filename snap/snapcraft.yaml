@@ -6,230 +6,174 @@ description: |
   originally developed in Italy by Digital Video, Inc., and customized
   by Studio Ghibli over many years of production.
 
-base: core18
+base: core24
+compression: lzo
 
 confinement: strict
 grade: stable
 
-architectures:
-  - build-on: amd64
-  - build-on: i386
-compression: lzo
+platforms:
+  amd64:
 
 apps:
   opentoonz:
-    environment:
-      # Fallback to XWayland if running in a Wayland session.
-      DISABLE_WAYLAND: 1
-      HOME: "$SNAP_USER_COMMON"
-      LD_LIBRARY_PATH: "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/blas:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/lapack"
     command: bin/opentoonz
+    extensions: [gnome]
     command-chain:
-      - bin/desktop-launch
       - snap/command-chain/ensure-defaults.sh
+    desktop: meta/gui/opentoonz.desktop
+    environment:
+      DISABLE_WAYLAND: "1"
+      HOME: "$SNAP_USER_COMMON"
+      LD_LIBRARY_PATH: "$SNAP/lib/opentoonz:$SNAP/gnome-platform/usr/lib/x86_64-linux-gnu:$SNAP/gnome-platform/usr/lib:$SNAP/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu:$SNAP/usr/lib/x86_64-linux-gnu/libproxy:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      QT_PLUGIN_PATH: "$SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins:$SNAP/gnome-platform/usr/lib/x86_64-linux-gnu/qt5/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+      QT_QPA_PLATFORM_PLUGIN_PATH: "$SNAP/usr/lib/x86_64-linux-gnu/qt5/plugins/platforms"
     plugs:
-      - desktop
-      - desktop-legacy
-      - x11
-      - unity7
-      - opengl
+      - audio-playback
+      - home
       - network
-      - network-manager
+      - opengl
+      - removable-media
+  tcleanup:
+    command: bin/tcleanup
+    plugs:
       - home
       - removable-media
-      - pulseaudio
-  tcleanup:
-    command: tcleanup
-    plugs:
-      - home
   tcomposer:
-    command: tcomposer
+    command: bin/tcomposer
     plugs:
       - home
+      - removable-media
   tconverter:
-    command: tconverter
+    command: bin/tconverter
     plugs:
       - home
+      - removable-media
   tfarmcontroller:
-    command: tfarmcontroller
+    command: bin/tfarmcontroller
     plugs:
       - home
+      - removable-media
   tfarmserver:
-    command: tfarmserver
+    command: bin/tfarmserver
     plugs:
       - home
+      - removable-media
 
 parts:
-  libmypaint:
-    source: https://github.com/mypaint/libmypaint.git
-    source-tag: 'v1.6.1'
-    plugin: autotools
+  opentoonz:
+    plugin: nil
+    source: https://github.com/opentoonz/opentoonz.git
+    source-tag: v1.7.1
+    override-build: |
+      set -eux
+
+      # The gnome extension is useful for runtime integration, but its SDK
+      # paths leak into the build and mix /snap libraries with host ones.
+      export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+      export CC=/usr/bin/gcc
+      export CXX=/usr/bin/g++
+      export LD=/usr/bin/ld
+      export PKG_CONFIG=/usr/bin/pkg-config
+      export LD_LIBRARY_PATH=/usr/lib/"$CRAFT_ARCH_TRIPLET_BUILD_FOR":/usr/lib:/lib/"$CRAFT_ARCH_TRIPLET_BUILD_FOR":/lib
+      export PKG_CONFIG_PATH=/usr/lib/"$CRAFT_ARCH_TRIPLET_BUILD_FOR"/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+      export PKG_CONFIG_LIBDIR=/usr/lib/"$CRAFT_ARCH_TRIPLET_BUILD_FOR"/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
+      export CMAKE_PREFIX_PATH=/usr
+      unset SNAPCRAFT_GNOME_SDK GETTEXTDATADIRS GDK_PIXBUF_MODULE_FILE ACLOCAL_PATH PYTHONPATH GI_TYPELIB_PATH
+
+      cd "$CRAFT_PART_SRC"/thirdparty/tiff-*
+      ./configure --with-pic --disable-jbig
+      make -j"${CRAFT_PARALLEL_BUILD_COUNT:-1}"
+
+      mkdir -p "$CRAFT_PART_BUILD"
+      cd "$CRAFT_PART_BUILD"
+      cmake "$CRAFT_PART_SRC/toonz/sources" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DWITH_TRANSLATION=OFF
+      cmake --build . --parallel "${CRAFT_PARALLEL_BUILD_COUNT:-1}"
+
+      cp -a bin "$CRAFT_PART_INSTALL/"
+      mkdir -p "$CRAFT_PART_INSTALL/lib"
+      cp -a lib/opentoonz "$CRAFT_PART_INSTALL/lib/"
+
+      mkdir -p "$CRAFT_PART_INSTALL/share/opentoonz"
+      cp -a "$CRAFT_PART_SRC/stuff" "$CRAFT_PART_INSTALL/share/opentoonz/"
     build-packages:
       - build-essential
-      - python2.7
-      - autotools-dev
-      - intltool
-      - gettext
-      - libtool
-      - libjson-c-dev
-      - libgirepository1.0-dev
+      - cmake
+      - freeglut3-dev
+      - libboost-all-dev
+      - libegl1-mesa-dev
+      - libfreetype-dev
+      - libglew-dev
       - libglib2.0-dev
-  opentoonz:
-    after: [libmypaint, desktop-qt5]
-    plugin: make
-    source: https://github.com/opentoonz/opentoonz
-    source-type: git
-    source-tag: 'v1.7.1'
-    #override-pull: |
-      #set -eu
-      #snapcraftctl pull
-      #last_committed_tag="$(git describe --tags --abbrev=0)"
-      #last_committed_tag_ver="$(echo ${last_committed_tag} | sed 's/v//')"
-      #last_released_tag="$(snap info $SNAPCRAFT_PROJECT_NAME | awk '$1 == "beta:" { print $2 }')"
-      ## If the latest tag from the upstream project has not been released to
-      ## beta, build that tag instead of master.
-      #if [ "${last_committed_tag_ver}" != "${last_released_tag}" ]; then
-      #  git fetch
-      #  git checkout "${last_committed_tag}"
-      #fi
-      #snapcraftctl set-version $(git describe --tags --abbrev=0)
-    override-build: |
-      cd thirdparty/tiff-*
-      ./configure --with-pic --disable-jbig
-      make
-      cd ../../
-      mkdir build
-      cd build
-      cmake ../toonz/sources
-      make
-      cp -a bin $SNAPCRAFT_PART_INSTALL/
-      cp -a lib/opentoonz/ $SNAPCRAFT_PART_INSTALL/lib
-      mkdir -p $SNAPCRAFT_PART_INSTALL/share/opentoonz
-      cp -a ../stuff $SNAPCRAFT_PART_INSTALL/share/opentoonz
-    build-packages:
-        - build-essential
-        - cmake
-        - pkg-config
-        - libboost-all-dev
-        - qt5-default
-        - qtbase5-dev
-        - libqt5svg5-dev
-        - qtscript5-dev
-        - qttools5-dev
-        - qttools5-dev-tools
-        - libqt5opengl5-dev
-        - libsuperlu-dev
-        - liblz4-dev
-        - libusb-1.0-0-dev
-        - liblzo2-dev
-        - libjpeg-dev
-        - libglew-dev
-        - freeglut3-dev
-        - libsdl2-dev
-        - libfreetype6-dev
-        - qtmultimedia5-dev
-        - libqt5multimedia5
-        - libqt5serialport5-dev
-        - libopencv-dev
-        - libturbojpeg0-dev
+      - libgsl-dev
+      - libjpeg-dev
+      - libjson-c-dev
+      - liblz4-dev
+      - liblzma-dev
+      - liblzo2-dev
+      - libmypaint-dev
+      - libopencv-dev
+      - libopenblas-dev
+      - libpng-dev
+      - libqt5opengl5-dev
+      - libqt5serialport5-dev
+      - libqt5svg5-dev
+      - libsdl2-dev
+      - libsuperlu-dev
+      - libturbojpeg0-dev
+      - libusb-1.0-0-dev
+      - pkg-config
+      - qtbase5-dev
+      - qtmultimedia5-dev
+      - qtscript5-dev
+      - qttools5-dev
+      - qttools5-dev-tools
+      - qtwayland5
     stage-packages:
-        - libglu1-mesa
-        - ffmpeg
-        - libpulse0
-        - gstreamer1.0-plugins-ugly
-        - gstreamer1.0-plugins-good
-        - gstreamer1.0-plugins-bad
-        - libqt5multimedia5-plugins
-        - libglew2.0
-        - libqt5printsupport5
-        - libqt5script5
-        - libblas3
-        - libpgm-5.2-0
-        - libsuperlu5
-        - freeglut3
-        - libgpm2
-        - x264
-        - libslang2
-        - libqt5serialport5
-        - libaec0
-        - libarmadillo8
-        - libarpack2
-        - libcharls1
-        - libdap25
-        - libdapclient6v5
-        - libepsilon1
-        - libexif12
-        - libfreexl1
-        - libfyba0
-        - libgdal20
-        - libgdcm2.8
-        - libgeos-3.6.2
-        - libgeos-c1v5
-        - libgeotiff2
-        - libgfortran4
-        - libgif7
-        - libgphoto2-6
-        - libgphoto2-port12
-        - libhdf4-0-alt
-        - libhdf5-100
-        - libkmlbase1
-        - libkmldom1
-        - libkmlengine1
-        - libltdl7
-        - libminizip1
-        - libmysqlclient20
-        - libnetcdf13
-        - libnspr4
-        - libnss3
-        - libodbc1
-        - libogdi3.2
-        - libopencv-core3.2
-        - libopencv-imgcodecs3.2
-        - libopencv-imgproc3.2
-        - libopencv-videoio3.2
-        - libpoppler73
-        - libpq5
-        - libproj12
-        - libqhull7
-        - libquadmath0
-        - libspatialite7
-        - libsz2
-        - libtbb2
-        - libturbojpeg
-        - liburiparser1
-        - libxerces-c3.2
-        - odbcinst1debian2
+      - ffmpeg
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-ugly
+      - libblas3
+      - libglew2.2
+      - libglut3.12
+      - libgsl27
+      - liblapack3
+      - liblzo2-2
+      - libmypaint-1.5-1
+      - libopencv-core406t64
+      - libopencv-imgcodecs406t64
+      - libopencv-imgproc406t64
+      - libopencv-videoio406t64
+      - libopenblas0-pthread
+      - libpulse0
+      - libproxy1v5
+      - libproxy1-plugin-networkmanager
+      - libqt5core5t64
+      - libqt5gui5t64
+      - libqt5multimedia5
+      - libqt5multimedia5-plugins
+      - libqt5multimediawidgets5
+      - libqt5network5t64
+      - libqt5opengl5t64
+      - libqt5printsupport5t64
+      - libqt5script5
+      - libqt5serialport5
+      - libqt5svg5
+      - libqt5widgets5t64
+      - libqt5xml5t64
+      - libsuperlu6
+      - libturbojpeg
+      - libusb-1.0-0
 
-  # Inject default preferences to point to ffmpeg in the snap itself
   default-preferences:
-    after: [ opentoonz ]
+    after: [opentoonz]
     plugin: dump
     source: default-preferences
     organize:
-      preferences.ini: share/opentoonz/stuff/profiles/layouts/settings/preferences.ini
       ensure-defaults.sh: snap/command-chain/ensure-defaults.sh
+      preferences.ini: share/opentoonz/stuff/profiles/layouts/settings/preferences.ini
     stage-packages:
       - crudini
-
-  desktop-qt5:
-      build-packages:
-        - qtbase5-dev
-        - dpkg-dev
-      make-parameters:
-        - FLAVOR=qt5
-      plugin: make
-      source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-      source-subdir: qt
-      stage-packages:
-        - libxkbcommon0
-        - ttf-ubuntu-font-family
-        - dmz-cursor-theme
-        - light-themes
-        - adwaita-icon-theme
-        - gnome-themes-standard
-        - shared-mime-info
-        - libqt5gui5
-        - libgdk-pixbuf2.0-0
-        - libqt5svg5
-        - locales-all
-        - xdg-user-dirs
